@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import Plot from './Plot'
+import { histogramBins } from './histogram'
 import { DEFAULTS, simulate } from './simulation'
 
 const pct = (x) => (x * 100).toFixed(1) + '%'
@@ -37,11 +38,11 @@ export default function App() {
   const yType = logY ? 'log' : 'linear'
   const yTitle = 'Wealth (start = 1)'
 
-  const hist = useMemo(() => [{
-    type: 'histogram', x: Array.from(r.terminal), marker: { color: '#3b82f6' }, nbinsx: 60,
-    name: 'Investors',
-  }], [r])
-  const histLayout = { title: 'Terminal wealth distribution', xaxis: { title: yTitle }, yaxis: { title: 'Investors' }, bargap: 0.02 }
+  const hist = useMemo(() => {
+    const { x, y, width } = histogramBins(r.terminal)
+    return [{ type: 'bar', x, y, width, marker: { color: '#3b82f6' }, name: 'Investors' }]
+  }, [r])
+  const histLayout = { title: 'Terminal wealth distribution', xaxis: { title: 'Terminal wealth (start = 1)' }, yaxis: { title: 'Number of investors' }, bargap: 0.02 }
 
   const meanMedian = [
     { x: r.t, y: r.meanW, name: 'Mean', mode: 'lines', line: { color: '#ef4444' } },
