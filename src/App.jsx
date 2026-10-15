@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import Plot from './Plot'
+import { chartLayouts } from './chartLayouts'
 import { histogramBins } from './histogram'
 import { DEFAULTS, simulate } from './simulation'
 
@@ -36,13 +37,12 @@ export default function App() {
   const r = useMemo(() => simulate(params), [params])
   const s = r.summary
   const yType = logY ? 'log' : 'linear'
-  const yTitle = 'Wealth (start = 1)'
+  const [histLayout, meanMedianLayout, pathsLayout, sharesLayout] = chartLayouts(yType)
 
   const hist = useMemo(() => {
     const { x, y, width } = histogramBins(r.terminal)
     return [{ type: 'bar', x, y, width, marker: { color: '#3b82f6' }, name: 'Investors' }]
   }, [r])
-  const histLayout = { title: 'Terminal wealth distribution', xaxis: { title: 'Terminal wealth (start = 1)' }, yaxis: { title: 'Number of investors' }, bargap: 0.02 }
 
   const meanMedian = [
     { x: r.t, y: r.meanW, name: 'Mean', mode: 'lines', line: { color: '#ef4444' } },
@@ -100,9 +100,9 @@ export default function App() {
 
       <section className="charts">
         <Plot data={hist} layout={histLayout} />
-        <Plot data={meanMedian} layout={{ title: 'Mean and median wealth', xaxis: { title: 'Year' }, yaxis: { title: yTitle, type: yType } }} />
-        <Plot data={paths} layout={{ title: 'Selected individual wealth paths (20 investors)', xaxis: { title: 'Year' }, yaxis: { title: yTitle, type: yType } }} />
-        <Plot data={shares} layout={{ title: 'Share of total wealth held by the top groups', xaxis: { title: 'Year' }, yaxis: { title: 'Share of wealth', tickformat: '.0%', range: [0, 1] } }} />
+        <Plot data={meanMedian} layout={meanMedianLayout} />
+        <Plot data={paths} layout={pathsLayout} />
+        <Plot data={shares} layout={sharesLayout} />
       </section>
 
       <section className="explain">
