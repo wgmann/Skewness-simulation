@@ -9,11 +9,6 @@ export function chartLayouts(yType) {
       bargap: 0.02,
     },
     {
-      title: { text: 'Mean and median wealth' },
-      xaxis: axis('Year'),
-      yaxis: { ...axis('Wealth (start = 1)'), type: yType },
-    },
-    {
       title: { text: 'Selected individual wealth paths (20 investors)' },
       xaxis: axis('Year'),
       yaxis: { ...axis('Wealth (start = 1)'), type: yType },

@@ -1,11 +1,11 @@
 // Core simulation calculations (pure functions, no UI dependencies).
 
 export const DEFAULTS = {
-  mu: 0.07, // expected annual ARITHMETIC return E[R - 1]
-  sigma: 0.2, // st. dev. of the annual simple return
+  mu: 0.01, // expected annual ARITHMETIC return E[R - 1]
+  sigma: 0.05, // st. dev. of the annual simple return
   leverage: 1,
-  years: 40,
-  n: 1000,
+  years: 10,
+  n: 5000,
   seed: 42,
 }
 
