@@ -18,10 +18,5 @@ export function chartLayouts(yType) {
       xaxis: axis('Year'),
       yaxis: { ...axis('Wealth (start = 1)'), type: yType },
     },
-    {
-      title: { text: 'Share of total wealth held by the top groups' },
-      xaxis: axis('Year'),
-      yaxis: { ...axis('Share of wealth'), tickformat: '.0%', range: [0, 1] },
-    },
   ]
 }

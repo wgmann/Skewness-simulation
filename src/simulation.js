@@ -3,6 +3,7 @@
 export const DEFAULTS = {
   mu: 0.07, // expected annual ARITHMETIC return E[R - 1]
   sigma: 0.2, // st. dev. of the annual simple return
+  leverage: 1,
   years: 40,
   n: 1000,
   seed: 42,
@@ -74,20 +75,17 @@ export function skewness(x) {
   return m2 === 0 ? 0 : m3 / Math.pow(m2, 1.5)
 }
 
-// Share of total wealth held by the richest `fraction` of investors.
-export function topShare(x, fraction) {
-  const s = Array.from(x).sort((a, b) => b - a)
-  const k = Math.max(1, Math.round(s.length * fraction))
-  let top = 0
-  let total = 0
-  for (let i = 0; i < s.length; i++) {
-    total += s[i]
-    if (i < k) top += s[i]
-  }
-  return total === 0 ? 0 : top / total
+export function meanVarianceUtility(x, riskAversion) {
+  const average = mean(x)
+  let variance = 0
+  for (let i = 0; i < x.length; i++) variance += (x[i] - average) ** 2
+  variance /= x.length
+  return average - (riskAversion * variance) / 2
 }
 
-export function simulate({ mu, sigma, years, n, seed }) {
+export function simulate({ mu, sigma, leverage = 1, years, n, seed }) {
+  mu *= leverage
+  sigma *= leverage
   const { m, s } = logParams(mu, sigma)
   const rng = normalGenerator(mulberry32(seed))
   let wealth = new Float64Array(n).fill(1)
@@ -96,29 +94,21 @@ export function simulate({ mu, sigma, years, n, seed }) {
   const t = [0]
   const meanW = [1]
   const medianW = [1]
-  const top1 = [0.01]
-  const top10 = [0.1]
-  const top20 = [0.2]
   for (let y = 1; y <= years; y++) {
     for (let i = 0; i < n; i++) wealth[i] *= Math.exp(m + s * rng())
     for (let i = 0; i < nPaths; i++) paths[i].push(wealth[i])
     t.push(y)
     meanW.push(mean(wealth))
     medianW.push(median(wealth))
-    top1.push(topShare(wealth, 0.01))
-    top10.push(topShare(wealth, 0.1))
-    top20.push(topShare(wealth, 0.2))
   }
   return {
-    t, paths, meanW, medianW, top1, top10, top20,
+    t, paths, meanW, medianW,
     terminal: wealth,
     summary: {
       mean: mean(wealth),
       median: median(wealth),
       skewness: skewness(wealth),
-      top1: top1[years],
-      top10: top10[years],
-      top20: top20[years],
+      utilities: Object.fromEntries([1, 5, 8].map((a) => [a, meanVarianceUtility(wealth, a)])),
       ...logParams(mu, sigma),
     },
   }

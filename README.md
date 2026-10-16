@@ -1,14 +1,15 @@
 # Skewness-simulation
 
-Interactive educational app showing how compounding risky returns produces right-skewed wealth
-distributions and inequality, even when all investors start with identical wealth.
+Interactive educational app showing how leverage affects compounded wealth and mean–variance utility.
 Built with React, Vite and Plotly.js; fully client-side.
 
 ## Model
 
 Each investor's annual gross return is lognormal: `R = exp(m + s·Z)`, `Z ~ N(0,1)`, independent across
-investors and years. The inputs are the **expected arithmetic return** μ (`E[R] = 1 + μ`) and the
-**volatility** σ (standard deviation of `R`). The log-return parameters are derived as
+investors and years. The inputs are the **expected arithmetic return** μ (`E[R] = 1 + μ`), **volatility** σ (standard
+deviation of `R`), and leverage L. Leverage scales both μ and σ before the annual return is simulated.
+Mean–variance utility is calculated from terminal wealth as `mean(wealth) − A·variance(wealth)/2`,
+for risk-aversion values A = 1, 5, and 8. The log-return parameters are derived as
 `s² = ln(1 + σ²/(1+μ)²)` and `m = ln(1+μ) − s²/2`; `m` is the *mean log return*, lower than `ln(1+μ)`
 (volatility drag). Wealth evolves multiplicatively from 1.
 

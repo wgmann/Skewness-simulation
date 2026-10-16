@@ -29,6 +29,7 @@ export default function App() {
   const params = useMemo(() => ({
     mu: (Number(p.mu) || 0) / 100,
     sigma: (Number(p.sigma) || 0) / 100,
+    leverage: Number(p.leverage) || 0,
     years: clamp(Math.round(Number(p.years) || 1), 1, 100),
     n: clamp(Math.round(Number(p.n) || 100), 100, 10000),
     seed: Math.round(Number(p.seed) || 0),
@@ -37,7 +38,30 @@ export default function App() {
   const r = useMemo(() => simulate(params), [params])
   const s = r.summary
   const yType = logY ? 'log' : 'linear'
-  const [histLayout, meanMedianLayout, pathsLayout, sharesLayout] = chartLayouts(yType)
+  const [baseHistLayout, meanMedianLayout, pathsLayout] = chartLayouts(yType)
+  const histLayout = {
+    ...baseHistLayout,
+    shapes: [1, 5, 8].map((a, i) => ({
+      type: 'line',
+      xref: 'x',
+      yref: 'paper',
+      x0: s.utilities[a],
+      x1: s.utilities[a],
+      y0: 0,
+      y1: 0.08,
+      line: { color: ['#16a34a', '#f59e0b', '#9333ea'][i], dash: 'dash' },
+    })),
+    annotations: [1, 5, 8].map((a, i) => ({
+      x: s.utilities[a],
+      y: 0,
+      xref: 'x',
+      yref: 'paper',
+      text: `A=${a}`,
+      showarrow: false,
+      yanchor: 'top',
+      font: { color: ['#16a34a', '#f59e0b', '#9333ea'][i] },
+    })),
+  }
 
   const hist = useMemo(() => {
     const { x, y, width } = histogramBins(r.terminal)
@@ -49,23 +73,18 @@ export default function App() {
     { x: r.t, y: r.medianW, name: 'Median', mode: 'lines', line: { color: '#2563eb' } },
   ]
   const paths = r.paths.map((y, i) => ({ x: r.t, y, mode: 'lines', name: `Investor ${i + 1}`, showlegend: false, line: { width: 1 } }))
-  const shares = [
-    { x: r.t, y: r.top1, name: 'Top 1%' },
-    { x: r.t, y: r.top10, name: 'Top 10%' },
-    { x: r.t, y: r.top20, name: 'Top 20%' },
-  ].map((d) => ({ ...d, mode: 'lines' }))
-
   return (
     <main>
-      <h1>Compounding, Skewness and Inequality</h1>
+      <h1>Compounding, Leverage and Utility</h1>
       <p className="lead">
-        Every investor starts with the same wealth and faces the same return distribution, yet
-        independent luck, compounded over time, produces a highly unequal, right-skewed outcome.
+        Explore how leverage changes compounded wealth and mean–variance utility for investors with
+        different levels of risk aversion.
       </p>
 
       <section className="controls">
         <Field label={`Expected arithmetic return: ${p.mu}%`} value={p.mu} onChange={set('mu', -20, 30)} min={-20} max={30} step={0.5} />
         <Field label={`Volatility: ${p.sigma}%`} value={p.sigma} onChange={set('sigma', 0, 100)} min={0} max={100} step={1} />
+        <Field label={`Leverage: ${p.leverage}×`} value={p.leverage} onChange={set('leverage', 0, 3)} min={0} max={3} step={0.1} />
         <Field label={`Horizon: ${p.years} years`} value={p.years} onChange={set('years', 1, 100)} min={1} max={100} step={1} />
         <Field label={`Investors: ${p.n}`} value={p.n} onChange={set('n', 100, 10000)} min={100} max={10000} step={100} />
         <label className="field">
@@ -83,9 +102,9 @@ export default function App() {
 
       <section className="note">
         <strong>Arithmetic vs. log return.</strong> Gross returns are lognormal, R = exp(m + sZ), calibrated so
-        that E[R] = 1 + {pct(params.mu)} and the standard deviation of R is {pct(params.sigma)}. This implies
+        that E[R] = 1 + {pct(params.mu * params.leverage)} and the standard deviation of R is {pct(params.sigma * params.leverage)}. This implies
         a log-return volatility s = {pct(s.s)} and a <em>mean log return</em> m = {pct(s.m)}, which is lower
-        than the expected arithmetic return (ln(1+μ) = {pct(Math.log(1 + params.mu))}) by about s²/2. The
+        than the expected arithmetic return (ln(1+μ) = {pct(Math.log(1 + params.mu * params.leverage))}) by about s²/2. The
         median investor compounds at m, the mean at μ.
       </section>
 
@@ -93,29 +112,20 @@ export default function App() {
         <div><b>{num(s.mean)}</b>Mean wealth</div>
         <div><b>{num(s.median)}</b>Median wealth</div>
         <div><b>{num(s.skewness)}</b>Skewness</div>
-        <div><b>{pct(s.top1)}</b>Top 1% share</div>
-        <div><b>{pct(s.top10)}</b>Top 10% share</div>
-        <div><b>{pct(s.top20)}</b>Top 20% share</div>
+        {[1, 5, 8].map((a) => <div key={a}><b>{num(s.utilities[a])}</b>Mean–variance utility (A={a})</div>)}
       </section>
 
       <section className="charts">
         <Plot data={hist} layout={histLayout} />
         <Plot data={meanMedian} layout={meanMedianLayout} />
         <Plot data={paths} layout={pathsLayout} />
-        <Plot data={shares} layout={sharesLayout} />
       </section>
 
       <section className="explain">
-        <h2>Why does compounding create skewness?</h2>
-        <p>Wealth is a product of random growth factors. Its logarithm is a sum of independent shocks, hence
-          approximately normal; wealth itself is the exponential of that, i.e. lognormal. Gains multiply on
-          gains, so a lucky streak creates enormous wealth while bad luck can only reduce wealth towards zero.
-          The longer the horizon and the higher the volatility, the longer the right tail.</p>
-        <h2>Why do the mean and median diverge?</h2>
-        <p>The mean of wealth grows at the expected arithmetic return, but a typical investor grows at the
-          (lower) mean log return. A small number of extreme winners pull the mean up while the median stays
-          close to what a typical investor experiences, so the gap widens over time and wealth concentrates
-          in the top percentiles, even though everyone began equal.</p>
+        <h2>Mean–variance utility</h2>
+        <p>Utility is calculated from terminal wealth as its mean minus half its variance times risk aversion A.
+          Higher A assigns a larger penalty to variation in outcomes. The dashed markers on the histogram show
+          each utility value.</p>
       </section>
     </main>
   )
