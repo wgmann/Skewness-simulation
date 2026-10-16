@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { logParams, mean, median, skewness, topShare, simulate, mulberry32 } from './simulation'
+import { logParams, mean, median, meanVarianceUtility, skewness, simulate, mulberry32 } from './simulation'
 
 describe('simulation', () => {
   it('logParams reproduces the arithmetic mean and volatility of gross returns', () => {
@@ -20,7 +20,7 @@ describe('simulation', () => {
     expect(median([1, 2, 3, 4])).toBe(2.5)
     expect(skewness([1, 2, 3])).toBeCloseTo(0, 12)
     expect(skewness([1, 1, 1, 10])).toBeGreaterThan(0)
-    expect(topShare([1, 1, 1, 7], 0.25)).toBeCloseTo(0.7, 12)
+    expect(meanVarianceUtility([1, 3], 2)).toBe(1)
   })
   it('is reproducible and sensitive to the seed', () => {
     const p = { mu: 0.07, sigma: 0.2, years: 20, n: 200, seed: 7 }
@@ -32,7 +32,15 @@ describe('simulation', () => {
     const r = simulate({ mu: 0.07, sigma: 0.2, years: 60, n: 5000, seed: 3 })
     expect(r.summary.skewness).toBeGreaterThan(0.5)
     expect(r.summary.mean).toBeGreaterThan(r.summary.median)
-    expect(r.summary.top1).toBeGreaterThan(0.01)
     expect(r.t.length).toBe(61)
+  })
+  it('scales expected return and volatility by leverage', () => {
+    const r = simulate({ mu: 0.07, sigma: 0.2, leverage: 2, years: 1, n: 100, seed: 1 })
+    const expected = logParams(0.14, 0.4)
+    expect(r.summary.m).toBeCloseTo(expected.m, 12)
+    expect(r.summary.s).toBeCloseTo(expected.s, 12)
+    expect(r.summary.utilities).toHaveProperty('1')
+    expect(r.summary.utilities).toHaveProperty('5')
+    expect(r.summary.utilities).toHaveProperty('8')
   })
 })
