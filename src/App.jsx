@@ -4,7 +4,6 @@ import { chartLayouts } from './chartLayouts'
 import { histogramBins } from './histogram'
 import { DEFAULTS, simulate } from './simulation'
 
-const pct = (x) => (x * 100).toFixed(1) + '%'
 const num = (x) => x.toLocaleString(undefined, { maximumFractionDigits: 2 })
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v))
 
@@ -30,15 +29,15 @@ export default function App() {
     mu: (Number(p.mu) || 0) / 100,
     sigma: (Number(p.sigma) || 0) / 100,
     leverage: Number(p.leverage) || 0,
-    years: clamp(Math.round(Number(p.years) || 1), 1, 100),
-    n: clamp(Math.round(Number(p.n) || 100), 100, 10000),
+    years: clamp(Math.round(Number(p.years) || 1), 1, 20),
+    n: clamp(Math.round(Number(p.n) || 100), 1, 5000),
     seed: Math.round(Number(p.seed) || 0),
   }), [p])
 
   const r = useMemo(() => simulate(params), [params])
   const s = r.summary
   const yType = logY ? 'log' : 'linear'
-  const [baseHistLayout, meanMedianLayout, pathsLayout] = chartLayouts(yType)
+  const [baseHistLayout, pathsLayout] = chartLayouts(yType)
   const histLayout = {
     ...baseHistLayout,
     shapes: [1, 5, 8].map((a, i) => ({
@@ -68,10 +67,6 @@ export default function App() {
     return [{ type: 'bar', x, y, width, marker: { color: '#3b82f6' }, name: 'Investors' }]
   }, [r])
 
-  const meanMedian = [
-    { x: r.t, y: r.meanW, name: 'Mean', mode: 'lines', line: { color: '#ef4444' } },
-    { x: r.t, y: r.medianW, name: 'Median', mode: 'lines', line: { color: '#2563eb' } },
-  ]
   const paths = r.paths.map((y, i) => ({ x: r.t, y, mode: 'lines', name: `Investor ${i + 1}`, showlegend: false, line: { width: 1 } }))
   return (
     <main>
@@ -82,11 +77,11 @@ export default function App() {
       </p>
 
       <section className="controls">
-        <Field label={`Expected arithmetic return: ${p.mu}%`} value={p.mu} onChange={set('mu', -20, 30)} min={-20} max={30} step={0.5} />
-        <Field label={`Volatility: ${p.sigma}%`} value={p.sigma} onChange={set('sigma', 0, 100)} min={0} max={100} step={1} />
-        <Field label={`Leverage: ${p.leverage}×`} value={p.leverage} onChange={set('leverage', 0, 3)} min={0} max={3} step={0.1} />
-        <Field label={`Horizon: ${p.years} years`} value={p.years} onChange={set('years', 1, 100)} min={1} max={100} step={1} />
-        <Field label={`Investors: ${p.n}`} value={p.n} onChange={set('n', 100, 10000)} min={100} max={10000} step={100} />
+        <Field label={`Average return: ${p.mu}%`} value={p.mu} onChange={set('mu', 0, 10)} min={0} max={10} step={0.5} />
+        <Field label={`Volatility: ${p.sigma}%`} value={p.sigma} onChange={set('sigma', 1, 20)} min={1} max={20} step={1} />
+        <Field label={`Horizon: ${p.years} years`} value={p.years} onChange={set('years', 1, 20)} min={1} max={20} step={1} />
+        <Field label={`Leverage: ${p.leverage}×`} value={p.leverage} onChange={set('leverage', 1, 10)} min={1} max={10} step={0.1} />
+        <Field label={`Investors: ${p.n}`} value={p.n} onChange={set('n', 1, 5000)} min={1} max={5000} step={1} />
         <label className="field">
           <span>Random seed</span>
           <input type="number" value={p.seed} step={1} onChange={(e) => setP((o) => ({ ...o, seed: e.target.value }))} />
@@ -100,14 +95,6 @@ export default function App() {
         </div>
       </section>
 
-      <section className="note">
-        <strong>Arithmetic vs. log return.</strong> Gross returns are lognormal, R = exp(m + sZ), calibrated so
-        that E[R] = 1 + {pct(params.mu * params.leverage)} and the standard deviation of R is {pct(params.sigma * params.leverage)}. This implies
-        a log-return volatility s = {pct(s.s)} and a <em>mean log return</em> m = {pct(s.m)}, which is lower
-        than the expected arithmetic return (ln(1+μ) = {pct(Math.log(1 + params.mu * params.leverage))}) by about s²/2. The
-        median investor compounds at m, the mean at μ.
-      </section>
-
       <section className="stats">
         <div><b>{num(s.mean)}</b>Mean wealth</div>
         <div><b>{num(s.median)}</b>Median wealth</div>
@@ -117,15 +104,7 @@ export default function App() {
 
       <section className="charts">
         <Plot data={hist} layout={histLayout} />
-        <Plot data={meanMedian} layout={meanMedianLayout} />
         <Plot data={paths} layout={pathsLayout} />
-      </section>
-
-      <section className="explain">
-        <h2>Mean–variance utility</h2>
-        <p>Utility is calculated from terminal wealth as its mean minus half its variance times risk aversion A.
-          Higher A assigns a larger penalty to variation in outcomes. The dashed markers on the histogram show
-          each utility value.</p>
       </section>
     </main>
   )

@@ -1,7 +1,17 @@
 import { describe, it, expect } from 'vitest'
-import { logParams, mean, median, meanVarianceUtility, skewness, simulate, mulberry32 } from './simulation'
+import { DEFAULTS, logParams, mean, median, meanVarianceUtility, skewness, simulate, mulberry32 } from './simulation'
 
 describe('simulation', () => {
+  it('uses the requested default parameters', () => {
+    expect(DEFAULTS).toMatchObject({
+      mu: 0.01,
+      sigma: 0.05,
+      years: 10,
+      leverage: 1,
+      n: 5000,
+    })
+  })
+
   it('logParams reproduces the arithmetic mean and volatility of gross returns', () => {
     const { m, s } = logParams(0.07, 0.2)
     expect(Math.exp(m + (s * s) / 2)).toBeCloseTo(1.07, 10)
